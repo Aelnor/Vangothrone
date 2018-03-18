@@ -1,10 +1,10 @@
 package main
 
 type Team struct {
-	Id      int    `json:"Id"`
-	Name    string `json:"Name"`
-	Code    string `json:"Code"`
-	FunName string `json:"FunName"`
+	Id      int    `json:"id"`
+	Name    string `json:"name"`
+	Code    string `json:"code"`
+	FunName string `json:"funName"`
 }
 
 var Teams = []Team{
