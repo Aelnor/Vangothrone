@@ -47,7 +47,7 @@ var Teams = []Team{
 	Team{
 		Id:      7,
 		Name:    "Los Angeles Valiant",
-		Code:    "LAV",
+		Code:    "VAL",
 		FunName: "Los Angeles Valiants",
 	},
 	Team{
