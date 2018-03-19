@@ -53,13 +53,28 @@ func teamsHandler(w http.ResponseWriter, r *http.Request) {
 	json, err := json.Marshal(Teams)
 
 	if err != nil {
-		fmt.Fprint(w, err.Error())
+		fmt.Printf("Can't marshal teams: %s", err.Error())
 	}
 
 	fmt.Fprintf(w, string(json))
 }
 
+func authHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
+
+	}
+	json, err := json.Marshal(CurrentUser)
+
+	if err != nil {
+		fmt.Printf("Can't marshal current user: %s", err.Error())
+	}
+
+	fmt.Fprintf(w, string(json))
+
+}
+
 func main() {
+	http.HandleFunc("/auth", authHandler)
 	http.HandleFunc("/teams", teamsHandler)
 	http.HandleFunc("/", defaultHandler)
 	log.Fatal(http.ListenAndServe(":8383", nil))
