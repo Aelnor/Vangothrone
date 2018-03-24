@@ -2,42 +2,55 @@ package models
 
 import (
 	"database/sql"
+	"fmt"
+	"sync"
 	"time"
 )
 
 type Match struct {
-	Id          int          `json:"id"`
-	Teams       [2]string    `json:"teams"`
-	Date        time.Time    `json:"date"`
-	Result      string       `json:"result"`
-	Predictions []Prediction `json:"predictions"`
+	Id          int64         `json:"id"`
+	Teams       [2]string     `json:"teams"`
+	Date        time.Time     `json:"date"`
+	Result      string        `json:"result"`
+	Predictions []*Prediction `json:"predictions"`
 }
 
-const timeformat = "Jan _2 2006 15:04"
+const (
+	TIMEFORMAT = "Jan _2 2006 15:04"
+	CREATE     = "CREATE TABLE IF NOT EXISTS Matches(team_a, team_b, date, result)"
+)
+
+var cachedMatches []*Match
+var mx sync.Mutex
 
 func InitMatchesTable(db *sql.DB) error {
-	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS Matches(team_a, team_b, date, result)"); err != nil {
-		return err
-	}
-
-	return addMatch(db, Match{Id: 0, Teams: [2]string{"DAL", "SEO"}, Date: time.Now(), Result: "0:4"})
+	_, err := db.Exec(CREATE)
+	return err
 }
 
-func addMatch(db *sql.DB, m Match) error {
-	statement, err := db.Prepare("INSERT INTO Matches(team_a, team_b, date, result) VALUES(?,?,?,?)")
-	if err != nil {
-		return err
+func AddMatch(db *sql.DB, m *Match) error {
+	if len(m.Teams) != 2 || len(m.Teams[0]) == 0 || len(m.Teams[1]) == 0 {
+		return fmt.Errorf("There should be 2 teams")
 	}
+	date := m.Date.Format(TIMEFORMAT)
+	_, err := db.Exec("INSERT INTO Matches(team_a, team_b, date, result) VALUES(?,?,?,?)", m.Teams[0], m.Teams[1], date, m.Result)
 
-	defer statement.Close()
-
-	date := m.Date.Format(timeformat)
-	_, err = statement.Exec(m.Teams[0], m.Teams[1], date, m.Result)
-
+	if err != nil {
+		invalidateCache()
+	}
 	return err
 }
 
 func LoadMatches(db *sql.DB) ([]*Match, error) {
+	matches := cachedMatches
+	if matches != nil {
+		return matches, nil
+	}
+	mx.Lock()
+	defer mx.Unlock()
+	if cachedMatches != nil {
+		return cachedMatches, nil
+	}
 	rows, err := db.Query("SELECT rowid, team_a, team_b, date, result FROM Matches ORDER BY date ASC")
 	if err != nil {
 		return nil, err
@@ -45,16 +58,16 @@ func LoadMatches(db *sql.DB) ([]*Match, error) {
 
 	defer rows.Close()
 
-	matches := make([]*Match, 0)
+	matches = make([]*Match, 0)
 
 	for rows.Next() {
-		var id int
+		var id int64
 		var teamA, teamB, date, result string
 		if err := rows.Scan(&id, &teamA, &teamB, &date, &result); err != nil {
 			return nil, err
 		}
 
-		parsedDate, err := time.Parse(timeformat, date)
+		parsedDate, err := time.Parse(TIMEFORMAT, date)
 		if err != nil {
 			return nil, err
 		}
@@ -64,5 +77,30 @@ func LoadMatches(db *sql.DB) ([]*Match, error) {
 		return nil, rows.Err()
 	}
 
+	ids := make([]int64, len(matches))
+	matchesMap := make(map[int64]*Match)
+	for i, el := range matches {
+		ids[i] = el.Id
+		matchesMap[el.Id] = el
+	}
+
+	predictions, err := LoadPredictions(db, ids)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, elem := range predictions {
+		matchesMap[elem.MatchId].Predictions = append(matchesMap[elem.MatchId].Predictions, elem)
+	}
+
+	cachedMatches = matches
+
 	return matches, nil
+}
+
+func invalidateCache() {
+	mx.Lock()
+	defer mx.Unlock()
+	cachedMatches = nil
 }
