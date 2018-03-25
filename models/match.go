@@ -35,7 +35,7 @@ func AddMatch(db *sql.DB, m *Match) error {
 	date := m.Date.Format(TIMEFORMAT)
 	_, err := db.Exec("INSERT INTO Matches(team_a, team_b, date, result) VALUES(?,?,?,?)", m.Teams[0], m.Teams[1], date, m.Result)
 
-	if err != nil {
+	if err == nil {
 		invalidateCache()
 	}
 	return err
