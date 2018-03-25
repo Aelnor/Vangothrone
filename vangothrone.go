@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/aelnor/vangothrone/config"
 	"github.com/aelnor/vangothrone/models"
+	"github.com/julienschmidt/httprouter"
 	"log"
 	"net/http"
 )
@@ -36,7 +37,7 @@ func InitEnvironment() (*config.Env, error) {
 	return env, nil
 }
 
-func teamsHandler(w http.ResponseWriter, r *http.Request) {
+func teamsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Cache-Control", "no-cache,must-revalidate")
@@ -52,7 +53,7 @@ func teamsHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, string(jsontext))
 }
 
-func authHandler(w http.ResponseWriter, r *http.Request) {
+func authHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	if r.Method == "POST" {
 
 	}
@@ -64,10 +65,15 @@ func main() {
 		log.Fatal("Can't init environment: ", err)
 	}
 	hh := &HttpHandlers{Env: env}
-	http.HandleFunc("/auth", authHandler)
-	http.HandleFunc("/teams", teamsHandler)
-	http.HandleFunc("/matches", hh.Matches)
-	http.HandleFunc("/prediction", hh.PutPrediction)
+
+	rtr := httprouter.New()
+	rtr.GET("/auth", authHandler)
+	rtr.GET("/teams", teamsHandler)
+	rtr.GET("/matches", hh.GetMatches)
+	rtr.POST("/matches", hh.PostMatches)
+	rtr.PUT("/predictions", hh.PutPredictions)
+	rtr.PUT("/matches/:id", hh.PutMatch)
+
 	log.Printf("Preparations finished, serving")
-	log.Fatal(http.ListenAndServe(":8383", nil))
+	log.Fatal(http.ListenAndServe(":8383", rtr))
 }

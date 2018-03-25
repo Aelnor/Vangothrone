@@ -6,10 +6,12 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/aelnor/vangothrone/config"
 	"github.com/aelnor/vangothrone/models"
+	"github.com/julienschmidt/httprouter"
 )
 
 type HttpHandlers struct {
@@ -57,8 +59,8 @@ func processBody(w http.ResponseWriter, r *http.Request, result interface{}) err
 	return nil
 }
 
-func getMatches(env *config.Env, w http.ResponseWriter, r *http.Request) {
-	matches, err := models.LoadMatches(env.DB)
+func (h *HttpHandlers) GetMatches(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	matches, err := models.LoadMatches(h.Env.DB)
 	if err != nil {
 		log.Print("Can't load matches: ", err)
 		return
@@ -70,7 +72,7 @@ func getMatches(env *config.Env, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func postMatches(env *config.Env, w http.ResponseWriter, r *http.Request) {
+func (h *HttpHandlers) PostMatches(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var jsonMatch struct {
 		Teams [2]string `json:"teams"`
 		Date  time.Time `json:"date"`
@@ -81,7 +83,7 @@ func postMatches(env *config.Env, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := models.AddMatch(env.DB, &models.Match{
+	err := models.AddMatch(h.Env.DB, &models.Match{
 		Teams: jsonMatch.Teams,
 		Date:  jsonMatch.Date,
 	})
@@ -96,26 +98,7 @@ func postMatches(env *config.Env, w http.ResponseWriter, r *http.Request) {
 	log.Printf("Match added: %+v", jsonMatch)
 }
 
-func (h *HttpHandlers) Matches(w http.ResponseWriter, r *http.Request) {
-	switch {
-	case r.Method == http.MethodGet:
-		getMatches(h.Env, w, r)
-	case r.Method == http.MethodPost:
-		postMatches(h.Env, w, r)
-	default:
-		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
-		log.Printf("Query to /matches with %s from %s", r.Method, r.RemoteAddr)
-		return
-	}
-}
-
-func (h *HttpHandlers) PutPrediction(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPut {
-		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
-		log.Printf("Query to /prediction with %s from %s", r.Method, r.RemoteAddr)
-		return
-	}
-
+func (h *HttpHandlers) PutPredictions(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -150,4 +133,36 @@ func (h *HttpHandlers) PutPrediction(w http.ResponseWriter, r *http.Request) {
 
 	respondWithJson(w, &requestResult{Status: "OK"})
 	log.Printf("Saved prediction: %+v", jsonPrediction)
+}
+
+func (h *HttpHandlers) PutMatch(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	paramId := p.ByName("id")
+	id, err := strconv.ParseInt(paramId, 10, 64)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		log.Printf("Bad match id: %s", paramId)
+		return
+	}
+
+	var jsonMatch struct {
+		Teams  [2]string `json:"teams"`
+		Date   time.Time `json:"date"`
+		Result string    `json:"result"`
+	}
+
+	if err = processBody(w, r, &jsonMatch); err != nil {
+		log.Printf("Can't process match editing: %v", err)
+		return
+	}
+
+	err = models.SaveMatch(h.Env.DB, &models.Match{Id: id, Teams: jsonMatch.Teams, Date: jsonMatch.Date, Result: jsonMatch.Result})
+
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		log.Printf("Can't save match: %v", err)
+		return
+	}
+
+	respondWithJson(w, &requestResult{Status: "OK"})
+	log.Printf("Match saved: %+v", jsonMatch)
 }

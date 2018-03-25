@@ -29,7 +29,7 @@ func InitMatchesTable(db *sql.DB) error {
 }
 
 func AddMatch(db *sql.DB, m *Match) error {
-	if len(m.Teams) != 2 || len(m.Teams[0]) == 0 || len(m.Teams[1]) == 0 {
+	if len(m.Teams[0]) == 0 || len(m.Teams[1]) == 0 {
 		return fmt.Errorf("There should be 2 teams")
 	}
 	date := m.Date.Format(TIMEFORMAT)
@@ -39,6 +39,59 @@ func AddMatch(db *sql.DB, m *Match) error {
 		invalidateCache()
 	}
 	return err
+}
+
+func SaveMatch(db *sql.DB, m *Match) error {
+	if m.Id == 0 {
+		return fmt.Errorf("MatchId is null")
+	}
+
+	fields := make([]string, 0, 4)
+	values := make([]string, 0, 4)
+
+	if len(m.Teams[0]) != 0 && len(m.Teams[1]) != 0 {
+		fields = append(fields, "team_a")
+		values = append(values, m.Teams[0])
+		fields = append(fields, "team_b")
+		values = append(values, m.Teams[1])
+	}
+
+	if !m.Date.IsZero() {
+		fields = append(fields, "date")
+		values = append(values, m.Date.Format(TIMEFORMAT))
+	}
+
+	if len(m.Result) != 0 {
+		fields = append(fields, "result")
+		values = append(values, m.Result)
+	}
+
+	query := "UPDATE Matches SET "
+	for i, val := range fields {
+		query += val + "='" + values[i] + "'"
+		if i != len(fields)-1 {
+			query += ", "
+		}
+	}
+
+	query += " WHERE rowid=?"
+
+	res, err := db.Exec(query, m.Id)
+	if err != nil {
+		return err
+	}
+
+	rows, err := res.RowsAffected()
+
+	if err != nil {
+		return err
+
+	}
+	if rows != 1 {
+		return fmt.Errorf("No such match")
+	}
+	invalidateCache()
+	return nil
 }
 
 func LoadMatches(db *sql.DB) ([]*Match, error) {
