@@ -73,6 +73,7 @@ func main() {
 	rtr.POST("/matches", hh.PostMatches)
 	rtr.PUT("/predictions", hh.PutPredictions)
 	rtr.PUT("/matches/:id", hh.PutMatch)
+	rtr.OPTIONS("/*path", hh.Options)
 
 	log.Printf("Preparations finished, serving")
 	log.Fatal(http.ListenAndServe(":8383", rtr))

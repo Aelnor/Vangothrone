@@ -168,3 +168,7 @@ func (h *HttpHandlers) PutMatch(w http.ResponseWriter, r *http.Request, p httpro
 	respondWithJson(w, &requestResult{Status: "OK"})
 	log.Printf("Match saved: %+v", jsonMatch)
 }
+
+func (h *HttpHandlers) Options(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	sendNoCacheHeaders(w)
+}
