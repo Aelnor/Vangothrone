@@ -60,7 +60,7 @@ func SavePrediction(db *sql.DB, pred *Prediction) error {
 		err = createPrediction(db, pred)
 
 	}
-	if err != nil {
+	if err == nil {
 		invalidateCache()
 	}
 	return err
