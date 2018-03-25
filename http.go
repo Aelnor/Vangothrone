@@ -28,6 +28,8 @@ func sendNoCacheHeaders(w http.ResponseWriter) {
 	w.Header().Set("Cache-Control", "no-cache,must-revalidate")
 	w.Header().Set("Access-Control-Allow-Credentials", "true")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET,POST,PUT")
+	w.Header().Set("Access-Control-Allow-Headers", "Origin,Content-Type,X-Auth-Token")
 }
 
 func respondWithJson(w http.ResponseWriter, data interface{}) error {
