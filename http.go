@@ -23,17 +23,21 @@ type requestResult struct {
 	Text   string `json:"text,omitempty"`
 }
 
-func sendNoCacheHeaders(w http.ResponseWriter) {
-	w.Header().Set("Pragma", "no-cache")
-	w.Header().Set("Cache-Control", "no-cache,must-revalidate")
+func sendCORSHeaders(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Credentials", "true")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS, POST, PUT")
 	w.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, X-Auth-Token")
 }
 
+func sendNoCacheHeaders(w http.ResponseWriter) {
+	w.Header().Set("Pragma", "no-cache")
+	w.Header().Set("Cache-Control", "no-cache,must-revalidate")
+}
+
 func respondWithJson(w http.ResponseWriter, data interface{}) error {
 	w.Header().Set("Content-Type", "application/json")
+	sendCORSHeaders(w)
 	sendNoCacheHeaders(w)
 
 	jsontext, err := json.MarshalIndent(data, "", "  ")
@@ -170,5 +174,5 @@ func (h *HttpHandlers) PutMatch(w http.ResponseWriter, r *http.Request, p httpro
 }
 
 func (h *HttpHandlers) Options(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	sendNoCacheHeaders(w)
+	sendCORSHeaders(w)
 }
