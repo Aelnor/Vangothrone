@@ -23,9 +23,13 @@ type requestResult struct {
 	Text   string `json:"text,omitempty"`
 }
 
-func sendCORSHeaders(w http.ResponseWriter) {
+func sendCORSHeaders(w http.ResponseWriter, r *http.Request) {
+	origin := r.Header.Get("Origin")
+	if len(origin) == 0 {
+		origin = "*"
+	}
 	w.Header().Set("Access-Control-Allow-Credentials", "true")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Origin", origin)
 	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS, POST, PUT")
 	w.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, X-Auth-Token")
 }
@@ -35,9 +39,9 @@ func sendNoCacheHeaders(w http.ResponseWriter) {
 	w.Header().Set("Cache-Control", "no-cache,must-revalidate")
 }
 
-func respondWithJson(w http.ResponseWriter, data interface{}) error {
+func respondWithJson(w http.ResponseWriter, r *http.Request, data interface{}) error {
 	w.Header().Set("Content-Type", "application/json")
-	sendCORSHeaders(w)
+	sendCORSHeaders(w, r)
 	sendNoCacheHeaders(w)
 
 	jsontext, err := json.MarshalIndent(data, "", "  ")
@@ -72,7 +76,7 @@ func (h *HttpHandlers) GetMatches(w http.ResponseWriter, r *http.Request, _ http
 		return
 	}
 
-	if err := respondWithJson(w, matches); err != nil {
+	if err := respondWithJson(w, r, matches); err != nil {
 		log.Print("Can't send response: ", err)
 		return
 	}
@@ -100,7 +104,7 @@ func (h *HttpHandlers) PostMatches(w http.ResponseWriter, r *http.Request, _ htt
 		return
 	}
 
-	respondWithJson(w, &requestResult{Status: "OK"})
+	respondWithJson(w, r, &requestResult{Status: "OK"})
 	log.Printf("Match added: %+v", jsonMatch)
 }
 
@@ -137,7 +141,7 @@ func (h *HttpHandlers) PutPredictions(w http.ResponseWriter, r *http.Request, _ 
 		return
 	}
 
-	respondWithJson(w, &requestResult{Status: "OK"})
+	respondWithJson(w, r, &requestResult{Status: "OK"})
 	log.Printf("Saved prediction: %+v", jsonPrediction)
 }
 
@@ -169,10 +173,10 @@ func (h *HttpHandlers) PutMatch(w http.ResponseWriter, r *http.Request, p httpro
 		return
 	}
 
-	respondWithJson(w, &requestResult{Status: "OK"})
+	respondWithJson(w, r, &requestResult{Status: "OK"})
 	log.Printf("Match saved: %+v", jsonMatch)
 }
 
 func (h *HttpHandlers) Options(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	sendCORSHeaders(w)
+	sendCORSHeaders(w, r)
 }
