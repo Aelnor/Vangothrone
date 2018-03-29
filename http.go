@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -67,6 +68,16 @@ func processBody(w http.ResponseWriter, r *http.Request, result interface{}) err
 		return fmt.Errorf("Can't parse requst body: %v", err)
 	}
 	return nil
+}
+
+func initUser(db *sql.DB, r *http.Request) (*models.User, error) {
+	login, err := r.Cookie("Login")
+	password, errP := r.Cookie("Password")
+	if err != nil || errP != nil {
+		return nil, fmt.Errorf("No cookie set")
+	}
+
+	return models.LoadUser(db, login.Value, password.Value)
 }
 
 func (h *HttpHandlers) GetMatches(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -175,6 +186,64 @@ func (h *HttpHandlers) PutMatch(w http.ResponseWriter, r *http.Request, p httpro
 
 	respondWithJson(w, r, &requestResult{Status: "OK"})
 	log.Printf("Match saved: %+v", jsonMatch)
+}
+
+func (h *HttpHandlers) PostLogin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	var jsonUser struct {
+		Login    string `json:"login"`
+		Password string `json:"password"`
+	}
+
+	if err := processBody(w, r, &jsonUser); err != nil {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		log.Printf("Can't process auth: %v", err)
+		return
+	}
+
+	if len(jsonUser.Login) == 0 || len(jsonUser.Password) == 0 {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		log.Printf("Login or password is empty")
+		return
+	}
+
+	_, err := models.CheckCredentials(h.Env.DB, jsonUser.Login, jsonUser.Password)
+	if err != nil {
+		respondWithJson(w, r, &requestResult{Status: "Failed", Text: "Incorrect user or password"})
+		return
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:  "Login",
+		Value: jsonUser.Login,
+	})
+	http.SetCookie(w, &http.Cookie{
+		Name:  "Password",
+		Value: models.GetMD5Hash(jsonUser.Password),
+	})
+
+	respondWithJson(w, r, &requestResult{Status: "OK"})
+	log.Printf("User authorized: %s", jsonUser.Login)
+}
+
+func (h *HttpHandlers) GetLogout(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	http.SetCookie(w, &http.Cookie{
+		Name:   "Login",
+		MaxAge: -1,
+	})
+	http.SetCookie(w, &http.Cookie{
+		Name:   "Password",
+		MaxAge: -1,
+	})
+	respondWithJson(w, r, &requestResult{Status: "OK"})
+}
+
+func (h *HttpHandlers) GetLogin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	u, err := initUser(h.Env.DB, r)
+	if err != nil {
+		respondWithJson(w, r, &requestResult{Status: "Fail", Text: err.Error()})
+	} else {
+		respondWithJson(w, r, &requestResult{Status: "OK", Text: "Current user: " + u.Login})
+	}
 }
 
 func (h *HttpHandlers) Options(w http.ResponseWriter, r *http.Request, p httprouter.Params) {

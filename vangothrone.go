@@ -53,12 +53,6 @@ func teamsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	fmt.Fprintf(w, string(jsontext))
 }
 
-func authHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	if r.Method == "POST" {
-
-	}
-}
-
 func main() {
 	env, err := InitEnvironment()
 	if err != nil {
@@ -67,12 +61,14 @@ func main() {
 	hh := &HttpHandlers{Env: env}
 
 	rtr := httprouter.New()
-	rtr.GET("/auth", authHandler)
 	rtr.GET("/teams", teamsHandler)
 	rtr.GET("/matches", hh.GetMatches)
 	rtr.POST("/matches", hh.PostMatches)
 	rtr.PUT("/predictions", hh.PutPredictions)
 	rtr.PUT("/matches/:id", hh.PutMatch)
+	rtr.POST("/login", hh.PostLogin)
+	rtr.GET("/login", hh.GetLogin)
+	rtr.GET("/logout", hh.GetLogout)
 	rtr.OPTIONS("/*path", hh.Options)
 
 	log.Printf("Preparations finished, serving")

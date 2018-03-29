@@ -21,15 +21,12 @@ func GetMD5Hash(text string) string {
 }
 
 func InitUsersTable(db *sql.DB) error {
-	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS Users(login, name, password, is_admin)"); err != nil {
-		return err
-	}
-
-	return AddUser(db, "eiden", "AC", "pass", true)
+	_, err := db.Exec("CREATE TABLE IF NOT EXISTS Users(login, name, password, is_admin)")
+	return err
 }
 
-func checkCredentials(db *sql.DB, login string, password string) (*User, error) {
-	row := db.QueryRow("SELECT rowid, login, name, is_admin FROM Users WHERE login=? AND password=?", login, GetMD5Hash(password))
+func LoadUser(db *sql.DB, login string, password string) (*User, error) {
+	row := db.QueryRow("SELECT rowid, login, name, is_admin FROM Users WHERE login=? AND password=?", login, password)
 
 	u := new(User)
 	err := row.Scan(&u.Id, &u.Login, &u.Name, &u.IsAdmin)
@@ -42,6 +39,10 @@ func checkCredentials(db *sql.DB, login string, password string) (*User, error) 
 	}
 
 	return u, nil
+}
+
+func CheckCredentials(db *sql.DB, login string, password string) (*User, error) {
+	return LoadUser(db, login, GetMD5Hash(password))
 }
 
 func AddUser(db *sql.DB, login string, name string, password string, isAdmin bool) error {
