@@ -242,7 +242,7 @@ func (h *HttpHandlers) GetLogin(w http.ResponseWriter, r *http.Request, p httpro
 	if err != nil {
 		respondWithJson(w, r, &requestResult{Status: "Fail", Text: err.Error()})
 	} else {
-		respondWithJson(w, r, &requestResult{Status: "OK", Text: "Current user: " + u.Login})
+		respondWithJson(w, r, &u)
 	}
 }
 
