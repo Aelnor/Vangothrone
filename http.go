@@ -213,12 +213,14 @@ func (h *HttpHandlers) PostLogin(w http.ResponseWriter, r *http.Request, p httpr
 	}
 
 	http.SetCookie(w, &http.Cookie{
-		Name:  "Login",
-		Value: jsonUser.Login,
+		Name:    "Login",
+		Value:   jsonUser.Login,
+		Expires: time.Now().Add(time.Hour * 24 * 7),
 	})
 	http.SetCookie(w, &http.Cookie{
-		Name:  "Password",
-		Value: models.GetMD5Hash(jsonUser.Password),
+		Name:    "Password",
+		Value:   models.GetMD5Hash(jsonUser.Password),
+		Expires: time.Now().Add(time.Hour * 24 * 7),
 	})
 
 	respondWithJson(w, r, &requestResult{Status: "OK"})
@@ -227,12 +229,14 @@ func (h *HttpHandlers) PostLogin(w http.ResponseWriter, r *http.Request, p httpr
 
 func (h *HttpHandlers) GetLogout(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	http.SetCookie(w, &http.Cookie{
-		Name:   "Login",
-		MaxAge: -1,
+		Name:    "Login",
+		MaxAge:  -1,
+		Expires: time.Now().Add(-time.Hour * 24),
 	})
 	http.SetCookie(w, &http.Cookie{
-		Name:   "Password",
-		MaxAge: -1,
+		Name:    "Password",
+		MaxAge:  -1,
+		Expires: time.Now().Add(-time.Hour * 24),
 	})
 	respondWithJson(w, r, &requestResult{Status: "OK"})
 }
