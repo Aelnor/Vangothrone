@@ -33,10 +33,11 @@ func AddMatch(db *sql.DB, m *Match) error {
 		return fmt.Errorf("There should be 2 teams")
 	}
 	date := m.Date.UTC().Format(TIMEFORMAT)
-	_, err := db.Exec("INSERT INTO Matches(team_a, team_b, date, result) VALUES(?,?,?,?)", m.Teams[0], m.Teams[1], date, m.Result)
+	result, err := db.Exec("INSERT INTO Matches(team_a, team_b, date, result) VALUES(?,?,?,?)", m.Teams[0], m.Teams[1], date, m.Result)
 
 	if err == nil {
 		invalidateCache()
+		m.Id, _ = result.LastInsertId()
 	}
 	return err
 }

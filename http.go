@@ -21,6 +21,7 @@ type HttpHandlers struct {
 
 type requestResult struct {
 	Status string `json:"status"`
+	Id     int64  `json:"id,omitempty"`
 	Text   string `json:"text,omitempty"`
 }
 
@@ -104,10 +105,12 @@ func (h *HttpHandlers) PostMatches(w http.ResponseWriter, r *http.Request, _ htt
 		return
 	}
 
-	err := models.AddMatch(h.Env.DB, &models.Match{
+	m := &models.Match{
 		Teams: jsonMatch.Teams,
 		Date:  jsonMatch.Date,
-	})
+	}
+
+	err := models.AddMatch(h.Env.DB, m)
 
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -115,7 +118,9 @@ func (h *HttpHandlers) PostMatches(w http.ResponseWriter, r *http.Request, _ htt
 		return
 	}
 
-	respondWithJson(w, r, &requestResult{Status: "OK"})
+	w.WriteHeader(http.StatusCreated)
+
+	respondWithJson(w, r, &requestResult{Status: "OK", Id: m.Id})
 	log.Printf("Match added: %+v", jsonMatch)
 }
 
@@ -152,6 +157,7 @@ func (h *HttpHandlers) PutPredictions(w http.ResponseWriter, r *http.Request, _ 
 		return
 	}
 
+	w.WriteHeader(http.StatusCreated)
 	respondWithJson(w, r, &requestResult{Status: "OK"})
 	log.Printf("Saved prediction: %+v", jsonPrediction)
 }
