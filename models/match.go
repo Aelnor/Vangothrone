@@ -16,7 +16,7 @@ type Match struct {
 }
 
 const (
-	TIMEFORMAT = "Jan _2 2006 15:04"
+	TIMEFORMAT = "2006-01-02T15:04:05Z0700"
 	CREATE     = "CREATE TABLE IF NOT EXISTS Matches(team_a, team_b, date, result)"
 )
 
@@ -32,7 +32,7 @@ func AddMatch(db *sql.DB, m *Match) error {
 	if len(m.Teams[0]) == 0 || len(m.Teams[1]) == 0 {
 		return fmt.Errorf("There should be 2 teams")
 	}
-	date := m.Date.Format(TIMEFORMAT)
+	date := m.Date.UTC().Format(TIMEFORMAT)
 	_, err := db.Exec("INSERT INTO Matches(team_a, team_b, date, result) VALUES(?,?,?,?)", m.Teams[0], m.Teams[1], date, m.Result)
 
 	if err == nil {
