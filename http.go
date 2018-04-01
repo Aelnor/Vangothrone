@@ -42,7 +42,6 @@ func sendNoCacheHeaders(w http.ResponseWriter) {
 }
 
 func respondWithJson(w http.ResponseWriter, r *http.Request, data interface{}) error {
-	w.Header().Set("Content-Type", "application/json")
 	sendCORSHeaders(w, r)
 	sendNoCacheHeaders(w)
 
@@ -51,11 +50,27 @@ func respondWithJson(w http.ResponseWriter, r *http.Request, data interface{}) e
 		return fmt.Errorf("Can't marshal data: %s", err.Error())
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	fmt.Fprintf(w, string(jsontext))
 
 	return nil
 }
 
+func respondWithJsonAndStatus(w http.ResponseWriter, r *http.Request, data interface{}, statusCode int) error {
+	sendCORSHeaders(w, r)
+	sendNoCacheHeaders(w)
+
+	jsontext, err := json.MarshalIndent(data, "", "  ")
+	if err != nil {
+		return fmt.Errorf("Can't marshal data: %s", err.Error())
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	fmt.Fprintf(w, string(jsontext))
+
+	return nil
+}
 func processBody(w http.ResponseWriter, r *http.Request, result interface{}) error {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -118,9 +133,7 @@ func (h *HttpHandlers) PostMatches(w http.ResponseWriter, r *http.Request, _ htt
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
-
-	respondWithJson(w, r, &requestResult{Status: "OK", Id: m.Id})
+	respondWithJsonAndStatus(w, r, &requestResult{Status: "OK", Id: m.Id}, http.StatusCreated)
 	log.Printf("Match added: %+v", jsonMatch)
 }
 
@@ -157,8 +170,7 @@ func (h *HttpHandlers) PutPredictions(w http.ResponseWriter, r *http.Request, _ 
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
-	respondWithJson(w, r, &requestResult{Status: "OK"})
+	respondWithJsonAndStatus(w, r, &requestResult{Status: "OK"}, http.StatusCreated)
 	log.Printf("Saved prediction: %+v", jsonPrediction)
 }
 
