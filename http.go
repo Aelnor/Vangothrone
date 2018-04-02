@@ -268,6 +268,18 @@ func (h *HttpHandlers) GetLogin(w http.ResponseWriter, r *http.Request, p httpro
 	}
 }
 
+func (h *HttpHandlers) GetUsers(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	users, err := models.LoadUsers(h.Env.DB)
+	if err != nil {
+		log.Print("Can't load users: ", err)
+		return
+	}
+
+	if err := respondWithJson(w, r, users); err != nil {
+		log.Print("Can't send response: ", err)
+		return
+	}
+}
 func (h *HttpHandlers) Options(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	sendCORSHeaders(w, r)
 }

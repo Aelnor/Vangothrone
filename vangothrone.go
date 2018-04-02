@@ -69,6 +69,7 @@ func main() {
 	rtr.POST("/login", hh.PostLogin)
 	rtr.GET("/login", hh.GetLogin)
 	rtr.GET("/logout", hh.GetLogout)
+	rtr.GET("/users", hh.GetUsers)
 	rtr.OPTIONS("/*path", hh.Options)
 
 	log.Printf("Preparations finished, serving")

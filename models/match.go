@@ -21,7 +21,7 @@ const (
 )
 
 var cachedMatches []*Match
-var mx sync.Mutex
+var matchesMx sync.Mutex
 
 func InitMatchesTable(db *sql.DB) error {
 	_, err := db.Exec(CREATE)
@@ -36,7 +36,7 @@ func AddMatch(db *sql.DB, m *Match) error {
 	result, err := db.Exec("INSERT INTO Matches(team_a, team_b, date, result) VALUES(?,?,?,?)", m.Teams[0], m.Teams[1], date, m.Result)
 
 	if err == nil {
-		invalidateCache()
+		invalidateMatchesCache()
 		m.Id, _ = result.LastInsertId()
 	}
 	return err
@@ -91,7 +91,7 @@ func SaveMatch(db *sql.DB, m *Match) error {
 	if rows != 1 {
 		return fmt.Errorf("No such match")
 	}
-	invalidateCache()
+	invalidateMatchesCache()
 	return nil
 }
 
@@ -100,8 +100,8 @@ func LoadMatches(db *sql.DB) ([]*Match, error) {
 	if matches != nil {
 		return matches, nil
 	}
-	mx.Lock()
-	defer mx.Unlock()
+	matchesMx.Lock()
+	defer matchesMx.Unlock()
 	if cachedMatches != nil {
 		return cachedMatches, nil
 	}
@@ -153,8 +153,8 @@ func LoadMatches(db *sql.DB) ([]*Match, error) {
 	return matches, nil
 }
 
-func invalidateCache() {
-	mx.Lock()
-	defer mx.Unlock()
+func invalidateMatchesCache() {
+	matchesMx.Lock()
+	defer matchesMx.Unlock()
 	cachedMatches = nil
 }

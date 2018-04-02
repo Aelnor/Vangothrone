@@ -5,14 +5,22 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"fmt"
+	"sync"
 )
 
 type User struct {
-	Id      int    `json:"id"`
+	Id      int64  `json:"id"`
 	Name    string `json:"name"`
 	Login   string `json:"login"`
 	IsAdmin bool   `json:"isAdmin"`
 }
+
+const (
+	SELECT_ALL = "SELECT rowid, login, name, is_admin FROM Users"
+)
+
+var cachedUsers []*User
+var usersMx sync.Mutex
 
 func GetMD5Hash(text string) string {
 	hasher := md5.New()
@@ -54,6 +62,52 @@ func AddUser(db *sql.DB, login string, name string, password string, isAdmin boo
 	defer statement.Close()
 
 	_, err = statement.Exec(login, name, GetMD5Hash(password), isAdmin)
+	if err == nil {
+		invalidateUsersCache()
+	}
 
 	return err
+}
+
+func LoadUsers(db *sql.DB) ([]*User, error) {
+	users := cachedUsers
+	if users != nil {
+		return users, nil
+	}
+	usersMx.Lock()
+	defer usersMx.Unlock()
+	if cachedUsers != nil {
+		return cachedUsers, nil
+	}
+	rows, err := db.Query(SELECT_ALL)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	users = make([]*User, 0)
+
+	for rows.Next() {
+		var id int64
+		var login, name string
+		var isAdmin bool
+		if err := rows.Scan(&id, &login, &name, &isAdmin); err != nil {
+			return nil, err
+		}
+
+		users = append(users, &User{Id: id, Login: login, Name: name, IsAdmin: isAdmin})
+	}
+	if rows.Err() != nil {
+		return nil, rows.Err()
+	}
+	cachedUsers = users
+
+	return users, nil
+}
+
+func invalidateUsersCache() {
+	usersMx.Lock()
+	defer usersMx.Unlock()
+	cachedUsers = nil
 }
