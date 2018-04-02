@@ -25,26 +25,12 @@ type requestResult struct {
 	Text   string `json:"text,omitempty"`
 }
 
-func sendCORSHeaders(w http.ResponseWriter, r *http.Request) {
-	/*
-		origin := r.Header.Get("Origin")
-		if len(origin) == 0 {
-			origin = "*"
-		}
-		w.Header().Set("Access-Control-Allow-Credentials", "true")
-		w.Header().Set("Access-Control-Allow-Origin", origin)
-		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS, POST, PUT")
-		w.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, X-Auth-Token")
-	*/
-}
-
 func sendNoCacheHeaders(w http.ResponseWriter) {
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Cache-Control", "no-cache,must-revalidate")
 }
 
 func respondWithJson(w http.ResponseWriter, r *http.Request, data interface{}) error {
-	sendCORSHeaders(w, r)
 	sendNoCacheHeaders(w)
 
 	jsontext, err := json.MarshalIndent(data, "", "  ")
@@ -59,7 +45,6 @@ func respondWithJson(w http.ResponseWriter, r *http.Request, data interface{}) e
 }
 
 func respondWithJsonAndStatus(w http.ResponseWriter, r *http.Request, data interface{}, statusCode int) error {
-	sendCORSHeaders(w, r)
 	sendNoCacheHeaders(w)
 
 	jsontext, err := json.MarshalIndent(data, "", "  ")
@@ -112,7 +97,6 @@ func (h *HttpHandlers) GetMatches(w http.ResponseWriter, r *http.Request, _ http
 }
 
 func (h *HttpHandlers) PostMatches(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	log.Printf("POST!!!!!!!!!!")
 	var jsonMatch struct {
 		Teams [2]string `json:"teams"`
 		Date  time.Time `json:"date"`
@@ -283,6 +267,7 @@ func (h *HttpHandlers) GetUsers(w http.ResponseWriter, r *http.Request, _ httpro
 		return
 	}
 }
-func (h *HttpHandlers) Options(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	sendCORSHeaders(w, r)
+
+func (h *HttpHandlers) GetToken(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+
 }

@@ -72,13 +72,13 @@ func main() {
 	rtr.GET("/login", hh.GetLogin)
 	rtr.GET("/logout", hh.GetLogout)
 	rtr.GET("/users", hh.GetUsers)
-	//rtr.OPTIONS("/*path", hh.Options)
+	rtr.GET("/regtoken", hh.GetToken)
+
 	c := cors.New(cors.Options{
-		AllowedMethods: []string{"GET", "POST", "DELETE", "PUT", "OPTIONS"},
-		AllowOriginFunc: func (_ string) bool {return true},
-		AllowedHeaders: []string{"Origin", "Content-Type", "X-Requested-With", "X-Auth-Token", "Accept", "Accept-Language"},
+		AllowedMethods:   []string{"GET", "POST", "DELETE", "PUT", "OPTIONS"},
+		AllowOriginFunc:  func(_ string) bool { return true },
+		AllowedHeaders:   []string{"Origin", "Content-Type", "X-Requested-With", "X-Auth-Token", "Accept", "Accept-Language"},
 		AllowCredentials: true,
-		Debug: true,
 	})
 
 	log.Printf("Preparations finished, serving")

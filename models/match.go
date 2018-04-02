@@ -16,15 +16,15 @@ type Match struct {
 }
 
 const (
-	TIMEFORMAT = "2006-01-02T15:04:05Z0700"
-	CREATE     = "CREATE TABLE IF NOT EXISTS Matches(team_a, team_b, date, result)"
+	TIMEFORMAT           = "2006-01-02T15:04:05Z0700"
+	CREATE_MATCHES_TABLE = "CREATE TABLE IF NOT EXISTS Matches(team_a, team_b, date, result)"
 )
 
 var cachedMatches []*Match
 var matchesMx sync.Mutex
 
 func InitMatchesTable(db *sql.DB) error {
-	_, err := db.Exec(CREATE)
+	_, err := db.Exec(CREATE_MATCHES_TABLE)
 	return err
 }
 
