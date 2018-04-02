@@ -26,14 +26,16 @@ type requestResult struct {
 }
 
 func sendCORSHeaders(w http.ResponseWriter, r *http.Request) {
-	origin := r.Header.Get("Origin")
-	if len(origin) == 0 {
-		origin = "*"
-	}
-	w.Header().Set("Access-Control-Allow-Credentials", "true")
-	w.Header().Set("Access-Control-Allow-Origin", origin)
-	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS, POST, PUT")
-	w.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, X-Auth-Token")
+	/*
+		origin := r.Header.Get("Origin")
+		if len(origin) == 0 {
+			origin = "*"
+		}
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
+		w.Header().Set("Access-Control-Allow-Origin", origin)
+		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS, POST, PUT")
+		w.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, X-Auth-Token")
+	*/
 }
 
 func sendNoCacheHeaders(w http.ResponseWriter) {

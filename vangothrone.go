@@ -3,11 +3,13 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+	"net/http"
+
 	"github.com/aelnor/vangothrone/config"
 	"github.com/aelnor/vangothrone/models"
 	"github.com/julienschmidt/httprouter"
-	"log"
-	"net/http"
+	"github.com/rs/cors"
 )
 
 func prettyPrint(v interface{}) {
@@ -70,8 +72,12 @@ func main() {
 	rtr.GET("/login", hh.GetLogin)
 	rtr.GET("/logout", hh.GetLogout)
 	rtr.GET("/users", hh.GetUsers)
-	rtr.OPTIONS("/*path", hh.Options)
+	//rtr.OPTIONS("/*path", hh.Options)
+	c := cors.New(cors.Options{
+		AllowedOrigins: []string{"*"},
+		AllowedMethods: []string{"GET", "POST", "DELETE", "PUT", "OPTIONS"},
+	})
 
 	log.Printf("Preparations finished, serving")
-	log.Fatal(http.ListenAndServe(":8383", rtr))
+	log.Fatal(http.ListenAndServe(":8383", c.Handler(rtr)))
 }
