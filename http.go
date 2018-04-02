@@ -112,6 +112,7 @@ func (h *HttpHandlers) GetMatches(w http.ResponseWriter, r *http.Request, _ http
 }
 
 func (h *HttpHandlers) PostMatches(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	log.Printf("POST!!!!!!!!!!")
 	var jsonMatch struct {
 		Teams [2]string `json:"teams"`
 		Date  time.Time `json:"date"`
