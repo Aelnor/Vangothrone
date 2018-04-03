@@ -86,7 +86,7 @@ func initUser(db *sql.DB, r *http.Request) (*models.User, error) {
 func (h *HttpHandlers) GetMatches(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	user, err := initUser(h.Env.DB, r)
 	if err != nil {
-		http.Error(http.StatusUnauthorized, http.StatusText(http.StatusUnauthorized))
+		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 		return
 	}
 
