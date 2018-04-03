@@ -95,7 +95,7 @@ func SaveMatch(db *sql.DB, m *Match) error {
 	return nil
 }
 
-func LoadMatches(db *sql.DB) ([]*Match, error) {
+func LoadMatches(db *sql.DB, user *User) ([]*Match, error) {
 	matches := cachedMatches
 	if matches != nil {
 		return matches, nil
@@ -145,6 +145,9 @@ func LoadMatches(db *sql.DB) ([]*Match, error) {
 	}
 
 	for _, elem := range predictions {
+		if matchesMap[elem.MatchId].Date.After(time.Now().UTC()) && elem.UserId != user.Id {
+			elem.Score = "0:0"
+		}
 		matchesMap[elem.MatchId].Predictions = append(matchesMap[elem.MatchId].Predictions, elem)
 	}
 
