@@ -77,7 +77,7 @@ func initUser(db *sql.DB, r *http.Request) (*models.User, error) {
 	login, err := r.Cookie("Login")
 	password, errP := r.Cookie("Password")
 	if err != nil || errP != nil {
-		return nil, fmt.Errorf("No cookie set")
+		return nil, fmt.Errorf("Not logged in")
 	}
 
 	return models.LoadUser(db, login.Value, password.Value)
