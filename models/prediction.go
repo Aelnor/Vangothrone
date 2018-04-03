@@ -15,7 +15,7 @@ type Prediction struct {
 
 const (
 	ADD             = "INSERT INTO Predictions(user_id, match_id, score) VALUES($1,$2,$3)"
-	UPDATE          = "UPDATE Predictions SET score=$3 WHERE user_id=$1 AND match_id=$2"
+	UPDATE          = "UPDATE Predictions SET score=$1 WHERE user_id=$2 AND match_id=$3"
 	FIND_BY_MATCHES = "SELECT user_id, match_id, score FROM Predictions WHERE match_id IN "
 )
 
@@ -32,7 +32,7 @@ func createPrediction(db *sql.DB, pred *Prediction) error {
 }
 
 func updatePrediction(db *sql.DB, pred *Prediction) error {
-	_, err := db.Exec(UPDATE, pred.UserId, pred.MatchId, pred.Score)
+	_, err := db.Exec(UPDATE, pred.Score, pred.UserId, pred.MatchId)
 
 	return err
 }
