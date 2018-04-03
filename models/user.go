@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"fmt"
+	"strings"
 	"sync"
 )
 
@@ -34,7 +35,7 @@ func InitUsersTable(db *sql.DB) error {
 }
 
 func LoadUser(db *sql.DB, login string, password string) (*User, error) {
-	row := db.QueryRow("SELECT rowid, login, name, is_admin FROM Users WHERE login=? AND password=?", login, password)
+	row := db.QueryRow("SELECT rowid, login, name, is_admin FROM Users WHERE login=? AND password=?", strings.ToLower(login), password)
 
 	u := new(User)
 	err := row.Scan(&u.Id, &u.Login, &u.Name, &u.IsAdmin)
@@ -61,7 +62,7 @@ func AddUser(db *sql.DB, login string, name string, password string, isAdmin boo
 
 	defer statement.Close()
 
-	_, err = statement.Exec(login, name, GetMD5Hash(password), isAdmin)
+	_, err = statement.Exec(strings.ToLower(login), name, GetMD5Hash(password), isAdmin)
 	if err == nil {
 		invalidateUsersCache()
 	}
