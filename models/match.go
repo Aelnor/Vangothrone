@@ -144,5 +144,5 @@ func LoadMatch(db *sql.DB, id int64) (*Match, error) {
 }
 
 func (m *Match) IsStarted() bool {
-	return m.Date.After(time.Now().UTC())
+	return m.Date.Before(time.Now().UTC())
 }
