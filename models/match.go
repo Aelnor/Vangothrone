@@ -3,7 +3,6 @@ package models
 import (
 	"database/sql"
 	"fmt"
-	"sync"
 	"time"
 )
 
@@ -18,10 +17,8 @@ type Match struct {
 const (
 	TIMEFORMAT           = "2006-01-02T15:04:05Z0700"
 	CREATE_MATCHES_TABLE = "CREATE TABLE IF NOT EXISTS Matches(team_a, team_b, date, result)"
+	SELECT_ALL_MATCHES   = "SELECT rowid, team_a, team_b, date, result FROM Matches ORDER BY date ASC"
 )
-
-var cachedMatches []*Match
-var matchesMx sync.Mutex
 
 func InitMatchesTable(db *sql.DB) error {
 	_, err := db.Exec(CREATE_MATCHES_TABLE)
@@ -36,7 +33,6 @@ func AddMatch(db *sql.DB, m *Match) error {
 	result, err := db.Exec("INSERT INTO Matches(team_a, team_b, date, result) VALUES(?,?,?,?)", m.Teams[0], m.Teams[1], date, m.Result)
 
 	if err == nil {
-		invalidateMatchesCache()
 		m.Id, _ = result.LastInsertId()
 	}
 	return err
@@ -91,28 +87,18 @@ func SaveMatch(db *sql.DB, m *Match) error {
 	if rows != 1 {
 		return fmt.Errorf("No such match")
 	}
-	invalidateMatchesCache()
 	return nil
 }
 
-func LoadMatches(db *sql.DB, user *User) ([]*Match, error) {
-	matches := cachedMatches
-	if matches != nil {
-		return matches, nil
-	}
-	matchesMx.Lock()
-	defer matchesMx.Unlock()
-	if cachedMatches != nil {
-		return cachedMatches, nil
-	}
-	rows, err := db.Query("SELECT rowid, team_a, team_b, date, result FROM Matches ORDER BY date ASC")
+func LoadMatches(db *sql.DB) ([]*Match, error) {
+	rows, err := db.Query(SELECT_ALL_MATCHES)
 	if err != nil {
 		return nil, err
 	}
 
 	defer rows.Close()
 
-	matches = make([]*Match, 0)
+	matches := make([]*Match, 0)
 
 	for rows.Next() {
 		var id int64
@@ -131,33 +117,5 @@ func LoadMatches(db *sql.DB, user *User) ([]*Match, error) {
 		return nil, rows.Err()
 	}
 
-	ids := make([]int64, len(matches))
-	matchesMap := make(map[int64]*Match)
-	for i, el := range matches {
-		ids[i] = el.Id
-		matchesMap[el.Id] = el
-	}
-
-	predictions, err := LoadPredictions(db, ids)
-
-	if err != nil {
-		return nil, err
-	}
-
-	for _, elem := range predictions {
-		if matchesMap[elem.MatchId].Date.After(time.Now().UTC()) && elem.UserId != user.Id {
-			elem.Score = "0:0"
-		}
-		matchesMap[elem.MatchId].Predictions = append(matchesMap[elem.MatchId].Predictions, elem)
-	}
-
-	cachedMatches = matches
-
 	return matches, nil
-}
-
-func invalidateMatchesCache() {
-	matchesMx.Lock()
-	defer matchesMx.Unlock()
-	cachedMatches = nil
 }

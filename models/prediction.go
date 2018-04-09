@@ -3,8 +3,6 @@ package models
 import (
 	"database/sql"
 	"fmt"
-	"strconv"
-	"strings"
 )
 
 type Prediction struct {
@@ -14,9 +12,9 @@ type Prediction struct {
 }
 
 const (
-	ADD             = "INSERT INTO Predictions(user_id, match_id, score) VALUES($1,$2,$3)"
-	UPDATE          = "UPDATE Predictions SET score=$1 WHERE user_id=$2 AND match_id=$3"
-	FIND_BY_MATCHES = "SELECT user_id, match_id, score FROM Predictions WHERE match_id IN "
+	ADD                    = "INSERT INTO Predictions(user_id, match_id, score) VALUES($1,$2,$3)"
+	UPDATE                 = "UPDATE Predictions SET score=$1 WHERE user_id=$2 AND match_id=$3"
+	SELECT_ALL_PREDICTIONS = "SELECT user_id, match_id, score FROM Predictions"
 )
 
 func InitPredictionsTable(db *sql.DB) error {
@@ -60,15 +58,11 @@ func SavePrediction(db *sql.DB, pred *Prediction) error {
 		err = createPrediction(db, pred)
 
 	}
-	if err == nil {
-		invalidateMatchesCache()
-	}
 	return err
 }
 
-func LoadPredictions(db *sql.DB, matches []int64) ([]*Prediction, error) {
-	query := FIND_BY_MATCHES + "(" + strings.Join(int64ToString(matches), ",") + ")"
-	rows, err := db.Query(query)
+func LoadPredictions(db *sql.DB) ([]*Prediction, error) {
+	rows, err := db.Query(SELECT_ALL_PREDICTIONS)
 	if err != nil {
 		return nil, fmt.Errorf("Can't load predictions by matches: %s", err.Error())
 	}
@@ -86,12 +80,4 @@ func LoadPredictions(db *sql.DB, matches []int64) ([]*Prediction, error) {
 	}
 
 	return result, nil
-}
-
-func int64ToString(input []int64) []string {
-	output := make([]string, len(input))
-	for i, el := range input {
-		output[i] = strconv.FormatInt(el, 10)
-	}
-	return output
 }

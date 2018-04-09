@@ -72,7 +72,6 @@ func main() {
 	rtr.GET("/login", hh.GetLogin)
 	rtr.GET("/logout", hh.GetLogout)
 	rtr.GET("/users", hh.GetUsers)
-	rtr.GET("/regtoken", hh.GetToken)
 
 	c := cors.New(cors.Options{
 		AllowedMethods:   []string{"GET", "POST", "DELETE", "PUT", "OPTIONS"},

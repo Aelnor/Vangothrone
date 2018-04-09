@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/aelnor/vangothrone/config"
@@ -17,6 +18,70 @@ import (
 
 type HttpHandlers struct {
 	Env *config.Env
+}
+
+type cache struct {
+	matches   []*models.Match
+	matchesMx sync.Mutex
+
+	predictions   []*models.Prediction
+	predictionsMx sync.Mutex
+}
+
+var cached cache
+
+func (c *cache) Matches(db *sql.DB) ([]*models.Match, error) {
+	matches := c.matches
+	if matches != nil {
+		return matches, nil
+	}
+	c.matchesMx.Lock()
+	defer c.matchesMx.Unlock()
+	if c.matches != nil {
+		return c.matches, nil
+	}
+
+	matches, err := models.LoadMatches(db)
+	if err != nil {
+		return nil, err
+	}
+	c.matches = matches
+
+	return matches, nil
+}
+
+func (c *cache) Predictions(db *sql.DB) ([]*models.Prediction, error) {
+	predictions := c.predictions
+	if predictions != nil {
+		return predictions, nil
+	}
+	c.predictionsMx.Lock()
+	defer c.predictionsMx.Unlock()
+
+	if c.predictions != nil {
+		return c.predictions, nil
+	}
+
+	predictions, err := models.LoadPredictions(db)
+	if err != nil {
+		return nil, err
+	}
+
+	c.predictions = predictions
+
+	return predictions, nil
+}
+
+func (c *cache) InvalidateMatches() {
+	c.matchesMx.Lock()
+	c.matches = nil
+	c.matchesMx.Unlock()
+}
+
+func (c *cache) InvalidatePredictions() {
+	c.predictionsMx.Lock()
+	c.predictions = nil
+	c.predictionsMx.Unlock()
 }
 
 type requestResult struct {
@@ -83,6 +148,33 @@ func initUser(db *sql.DB, r *http.Request) (*models.User, error) {
 	return models.LoadUser(db, login.Value, password.Value)
 }
 
+func getMatches(db *sql.DB) ([]*models.Match, error) {
+	matches, err := cached.Matches(db)
+	if err != nil {
+		return nil, err
+	}
+	matchesCopy := make([]*models.Match, len(matches))
+
+	for i, elem := range matches {
+		matchesCopy[i] = elem
+	}
+	return matchesCopy, nil
+}
+
+func getPredictions(db *sql.DB, matches []int64) ([]*models.Prediction, error) {
+	predictions, err := cached.Predictions(db)
+	if err != nil {
+		log.Print("Can't load predictions: ", err)
+		return nil, err
+	}
+	predictionsCopy := make([]*models.Prediction, len(predictions))
+
+	for i, elem := range predictions {
+		predictionsCopy[i] = elem
+	}
+	return predictionsCopy, nil
+}
+
 func (h *HttpHandlers) GetMatches(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	user, err := initUser(h.Env.DB, r)
 	if err != nil {
@@ -90,10 +182,30 @@ func (h *HttpHandlers) GetMatches(w http.ResponseWriter, r *http.Request, _ http
 		return
 	}
 
-	matches, err := models.LoadMatches(h.Env.DB, user)
+	matches, err := getMatches(h.Env.DB)
 	if err != nil {
 		log.Print("Can't load matches: ", err)
 		return
+	}
+
+	ids := make([]int64, len(matches))
+	matchesMap := make(map[int64]*models.Match)
+	for i, el := range matches {
+		ids[i] = el.Id
+		matchesMap[el.Id] = el
+	}
+
+	predictions, err := getPredictions(h.Env.DB, ids)
+
+	if err != nil {
+		log.Print("Can't load predictions: ", err)
+	}
+
+	for _, elem := range predictions {
+		if matchesMap[elem.MatchId].Date.After(time.Now().UTC()) && elem.UserId != user.Id {
+			elem.Score = "0:0"
+		}
+		matchesMap[elem.MatchId].Predictions = append(matchesMap[elem.MatchId].Predictions, elem)
 	}
 
 	if err := respondWithJson(w, r, matches); err != nil {
@@ -125,6 +237,8 @@ func (h *HttpHandlers) PostMatches(w http.ResponseWriter, r *http.Request, _ htt
 		log.Printf("Can't save match: %v", err)
 		return
 	}
+
+	cached.InvalidateMatches()
 
 	respondWithJsonAndStatus(w, r, &requestResult{Status: "OK", Id: m.Id}, http.StatusCreated)
 	log.Printf("Match added: %+v", jsonMatch)
@@ -163,6 +277,7 @@ func (h *HttpHandlers) PutPredictions(w http.ResponseWriter, r *http.Request, _ 
 		return
 	}
 
+	cached.InvalidatePredictions()
 	respondWithJsonAndStatus(w, r, &requestResult{Status: "OK"}, http.StatusCreated)
 	log.Printf("Saved prediction: %+v", jsonPrediction)
 }
@@ -272,8 +387,4 @@ func (h *HttpHandlers) GetUsers(w http.ResponseWriter, r *http.Request, _ httpro
 		log.Print("Can't send response: ", err)
 		return
 	}
-}
-
-func (h *HttpHandlers) GetToken(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-
 }
