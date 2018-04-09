@@ -156,23 +156,10 @@ func getMatches(db *sql.DB) ([]*models.Match, error) {
 	matchesCopy := make([]*models.Match, len(matches))
 
 	for i, elem := range matches {
-		matchesCopy[i] = elem
+		matchesCopy[i] = new(models.Match)
+		*matchesCopy[i] = *elem
 	}
 	return matchesCopy, nil
-}
-
-func getPredictions(db *sql.DB, matches []int64) ([]*models.Prediction, error) {
-	predictions, err := cached.Predictions(db)
-	if err != nil {
-		log.Print("Can't load predictions: ", err)
-		return nil, err
-	}
-	predictionsCopy := make([]*models.Prediction, len(predictions))
-
-	for i, elem := range predictions {
-		predictionsCopy[i] = elem
-	}
-	return predictionsCopy, nil
 }
 
 func (h *HttpHandlers) GetMatches(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -195,7 +182,7 @@ func (h *HttpHandlers) GetMatches(w http.ResponseWriter, r *http.Request, _ http
 		matchesMap[el.Id] = el
 	}
 
-	predictions, err := getPredictions(h.Env.DB, ids)
+	predictions, err := cached.Predictions(h.Env.DB)
 
 	if err != nil {
 		log.Print("Can't load predictions: ", err)
