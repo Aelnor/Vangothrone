@@ -241,7 +241,7 @@ func (h *HttpHandlers) PutPredictions(w http.ResponseWriter, r *http.Request, _ 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		log.Printf("Can't read prediction from request")
+		log.Printf("Can't read prediction from request: %v", err)
 		return
 	}
 
@@ -266,6 +266,7 @@ func (h *HttpHandlers) PutPredictions(w http.ResponseWriter, r *http.Request, _ 
 	}
 
 	if match.IsStarted() {
+		log.Printf("Trying to post predictions to an already started match: %+v", match)
 		respondWithJsonAndStatus(w, r, &requestResult{Status: "Fail", Text: "Match has started already"}, http.StatusBadRequest)
 		return
 	}
