@@ -18,6 +18,7 @@ const (
 	TIMEFORMAT           = "2006-01-02T15:04:05Z0700"
 	CREATE_MATCHES_TABLE = "CREATE TABLE IF NOT EXISTS Matches(team_a, team_b, date, result)"
 	SELECT_ALL_MATCHES   = "SELECT rowid, team_a, team_b, date, result FROM Matches ORDER BY date ASC"
+	SELECT_MATCH_BY_ID   = "SELECT rowid, team_a, team_b, date, result FROM Matches WHERE rowid=?"
 )
 
 func InitMatchesTable(db *sql.DB) error {
@@ -118,4 +119,30 @@ func LoadMatches(db *sql.DB) ([]*Match, error) {
 	}
 
 	return matches, nil
+}
+
+func LoadMatch(db *sql.DB, id int64) (*Match, error) {
+	row := db.QueryRow(SELECT_MATCH_BY_ID, id)
+
+	m := new(Match)
+	var date string
+
+	err := row.Scan(&m.Id, &m.Teams[0], &m.Teams[1], &date, &m.Result)
+	switch {
+	case err == sql.ErrNoRows:
+		return nil, fmt.Errorf("No match with id: ", id)
+	case err != nil:
+		return nil, err
+	}
+
+	m.Date, err = time.Parse(TIMEFORMAT, date)
+	if err != nil {
+		return nil, err
+	}
+
+	return m, nil
+}
+
+func (m *Match) IsStarted() bool {
+	return m.Date.Before(time.Now().UTC())
 }

@@ -189,7 +189,7 @@ func (h *HttpHandlers) GetMatches(w http.ResponseWriter, r *http.Request, _ http
 	}
 
 	for _, elem := range predictions {
-		if matchesMap[elem.MatchId].Date.After(time.Now().UTC()) && elem.UserId != user.Id {
+		if !matchesMap[elem.MatchId].IsStarted() && elem.UserId != user.Id {
 			elem.Score = "0:0"
 		}
 		matchesMap[elem.MatchId].Predictions = append(matchesMap[elem.MatchId].Predictions, elem)
@@ -232,6 +232,12 @@ func (h *HttpHandlers) PostMatches(w http.ResponseWriter, r *http.Request, _ htt
 }
 
 func (h *HttpHandlers) PutPredictions(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	user, err := initUser(h.Env.DB, r)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+		return
+	}
+
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -252,8 +258,20 @@ func (h *HttpHandlers) PutPredictions(w http.ResponseWriter, r *http.Request, _ 
 		return
 	}
 
+	match, err := models.LoadMatch(h.Env.DB, jsonPrediction.MatchId)
+	if err != nil {
+		log.Printf("Can't load match: %v", err)
+		respondWithJsonAndStatus(w, r, &requestResult{Status: "Fail", Text: "Match is not found"}, http.StatusBadRequest)
+		return
+	}
+
+	if match.IsStarted() {
+		respondWithJsonAndStatus(w, r, &requestResult{Status: "Fail", Text: "Match has started already"}, http.StatusBadRequest)
+		return
+	}
+
 	err = models.SavePrediction(h.Env.DB, &models.Prediction{
-		UserId:  jsonPrediction.UserId,
+		UserId:  user.Id,
 		MatchId: jsonPrediction.MatchId,
 		Score:   jsonPrediction.Score,
 	})
