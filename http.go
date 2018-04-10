@@ -189,10 +189,11 @@ func (h *HttpHandlers) GetMatches(w http.ResponseWriter, r *http.Request, _ http
 	}
 
 	for _, elem := range predictions {
+		pred := *elem
 		if !matchesMap[elem.MatchId].IsStarted() && elem.UserId != user.Id {
-			elem.Score = "0:0"
+			pred.Score = "0:0"
 		}
-		matchesMap[elem.MatchId].Predictions = append(matchesMap[elem.MatchId].Predictions, elem)
+		matchesMap[elem.MatchId].Predictions = append(matchesMap[elem.MatchId].Predictions, &pred)
 	}
 
 	if err := respondWithJson(w, r, matches); err != nil {
