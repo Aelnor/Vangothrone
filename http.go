@@ -316,6 +316,7 @@ func (h *HttpHandlers) PutMatch(w http.ResponseWriter, r *http.Request, p httpro
 		return
 	}
 
+	cached.InvalidateMatches()
 	respondWithJson(w, r, &requestResult{Status: "OK"})
 	log.Printf("Match saved: %+v", jsonMatch)
 }
