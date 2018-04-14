@@ -73,6 +73,9 @@ func main() {
 	rtr.GET("/logout", hh.GetLogout)
 	rtr.GET("/users", hh.GetUsers)
 
+	rtr.GET("/", hh.GetIndex)
+	rtr.ServeFiles("/static/*filepath", http.Dir(config.GetStaticPath()+"static/"))
+
 	c := cors.New(cors.Options{
 		AllowedMethods:   []string{"GET", "POST", "DELETE", "PUT", "OPTIONS"},
 		AllowOriginFunc:  func(_ string) bool { return true },

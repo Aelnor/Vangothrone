@@ -396,3 +396,7 @@ func (h *HttpHandlers) GetUsers(w http.ResponseWriter, r *http.Request, _ httpro
 		return
 	}
 }
+
+func (h *HttpHandlers) GetIndex(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	http.ServeFile(w, r, config.GetStaticPath()+"index.html")
+}
