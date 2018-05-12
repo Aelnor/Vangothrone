@@ -75,6 +75,7 @@ func main() {
 	rtr.GET("/login", hh.GetLogin)
 	rtr.GET("/logout", hh.GetLogout)
 	rtr.GET("/users", hh.GetUsers)
+	rtr.GET("/stages", hh.GetStages)
 
 	rtr.GET("/", hh.GetIndex)
 	rtr.ServeFiles("/static/*filepath", http.Dir(config.GetStaticPath()+"static/"))

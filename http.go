@@ -406,6 +406,21 @@ func (h *HttpHandlers) GetUsers(w http.ResponseWriter, r *http.Request, _ httpro
 	}
 }
 
+func (h *HttpHandlers) GetStages(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	stages, err := models.LoadStages(h.Env.DB)
+	if err != nil {
+		log.Print("Can't load stages: ", err)
+		respondWithJson(w, r, &requestResult{Status: "Fail", Text: "Can't load stages"})
+		return
+	}
+
+	if err := respondWithJson(w, r, stages); err != nil {
+		log.Print("Can't send response: ", err)
+		respondWithJson(w, r, &requestResult{Status: "Fail", Text: "Can't send stages"})
+		return
+	}
+}
+
 func (h *HttpHandlers) GetIndex(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	http.ServeFile(w, r, config.GetStaticPath()+"index.html")
 }
