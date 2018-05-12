@@ -70,7 +70,7 @@ func (c *cache) Predictions(db *sql.DB) ([]*models.Prediction, error) {
 		return c.predictions, nil
 	}
 
-	predictions, err := models.LoadPredictions(db)
+	predictions, err := models.LoadPredictionsByMatches(db, c.matches)
 	if err != nil {
 		return nil, err
 	}

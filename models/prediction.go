@@ -12,9 +12,10 @@ type Prediction struct {
 }
 
 const (
-	ADD                    = "INSERT INTO Predictions(user_id, match_id, score) VALUES($1,$2,$3)"
-	UPDATE                 = "UPDATE Predictions SET score=$1 WHERE user_id=$2 AND match_id=$3"
-	SELECT_ALL_PREDICTIONS = "SELECT user_id, match_id, score FROM Predictions"
+	ADD                                 = "INSERT INTO Predictions(user_id, match_id, score) VALUES($1,$2,$3)"
+	UPDATE                              = "UPDATE Predictions SET score=$1 WHERE user_id=$2 AND match_id=$3"
+	SELECT_ALL_PREDICTIONS              = "SELECT user_id, match_id, score FROM Predictions"
+	SELECT_PREDICTIONS_IN_MATCHES_RANGE = SELECT_ALL_PREDICTIONS + " WHERE match_id >= ? AND match_id <= ?"
 )
 
 func InitPredictionsTable(db *sql.DB) error {
@@ -61,14 +62,7 @@ func SavePrediction(db *sql.DB, pred *Prediction) error {
 	return err
 }
 
-func LoadPredictions(db *sql.DB) ([]*Prediction, error) {
-	rows, err := db.Query(SELECT_ALL_PREDICTIONS)
-	if err != nil {
-		return nil, fmt.Errorf("Can't load predictions by matches: %s", err.Error())
-	}
-
-	defer rows.Close()
-
+func loadPredictions(rows *sql.Rows) ([]*Prediction, error) {
 	result := make([]*Prediction, 0)
 	for rows.Next() {
 		pred := new(Prediction)
@@ -80,4 +74,32 @@ func LoadPredictions(db *sql.DB) ([]*Prediction, error) {
 	}
 
 	return result, nil
+}
+
+func LoadPredictionsByMatches(db *sql.DB, matches []*Match) ([]*Prediction, error) {
+	if len(matches) == 0 {
+		return make([]*Prediction, 0), nil
+	}
+
+	maxId := matches[0].Id
+	minId := maxId
+	for _, m := range matches {
+		if minId > m.Id {
+			minId = m.Id
+			continue
+		}
+
+		if maxId < m.Id {
+			maxId = m.Id
+		}
+	}
+
+	rows, err := db.Query(SELECT_PREDICTIONS_IN_MATCHES_RANGE, minId, maxId)
+	if err != nil {
+		return nil, fmt.Errorf("Can't load predictions: %s", err.Error())
+	}
+
+	defer rows.Close()
+
+	return loadPredictions(rows)
 }
