@@ -21,31 +21,39 @@ type HttpHandlers struct {
 }
 
 type cache struct {
-	matches   []*models.Match
 	matchesMx sync.Mutex
+	matches   []*models.Match
+	stage     *models.Stage
+	cacheTime time.Time
 
-	predictions   []*models.Prediction
 	predictionsMx sync.Mutex
+	predictions   []*models.Prediction
 }
 
 var cached cache
 
+func (c *cache) cacheValid() bool {
+	return time.Now().Sub(c.cacheTime)/(time.Hour*24) == 0
+}
+
 func (c *cache) Matches(db *sql.DB) ([]*models.Match, error) {
-	matches := c.matches
-	if matches != nil {
-		return matches, nil
-	}
 	c.matchesMx.Lock()
 	defer c.matchesMx.Unlock()
-	if c.matches != nil {
+	if c.matches != nil && c.cacheValid() {
 		return c.matches, nil
 	}
 
-	matches, err := models.LoadMatches(db)
+	stage, err := models.GetCurrentStage(db)
+	if err != nil {
+		return nil, err
+	}
+	matches, err := models.LoadMatchesByStage(db, stage)
 	if err != nil {
 		return nil, err
 	}
 	c.matches = matches
+	c.stage = stage
+	c.cacheTime = time.Now()
 
 	return matches, nil
 }
@@ -171,6 +179,7 @@ func (h *HttpHandlers) GetMatches(w http.ResponseWriter, r *http.Request, _ http
 
 	matches, err := getMatches(h.Env.DB)
 	if err != nil {
+		respondWithJsonAndStatus(w, r, &requestResult{Status: "Can't load matches"}, http.StatusInternalServerError)
 		log.Print("Can't load matches: ", err)
 		return
 	}

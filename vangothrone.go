@@ -20,16 +20,19 @@ func prettyPrint(v interface{}) {
 func InitEnvironment() (*config.Env, error) {
 	db, err := config.InitDatabase()
 	if err != nil {
-		return nil, fmt.Errorf("Can't init database: %s", err.Error())
+		return nil, fmt.Errorf("Can't init table: %s", err.Error())
 	}
 	if err := models.InitUsersTable(db); err != nil {
-		return nil, fmt.Errorf("Can't init database 'Users': %s", err.Error())
+		return nil, fmt.Errorf("Can't init table 'Users': %s", err.Error())
 	}
 	if err := models.InitMatchesTable(db); err != nil {
-		return nil, fmt.Errorf("Can't init database 'Matches': %s", err.Error())
+		return nil, fmt.Errorf("Can't init table 'Matches': %s", err.Error())
 	}
 	if err := models.InitPredictionsTable(db); err != nil {
-		return nil, fmt.Errorf("Can't init database 'Predictions': %s", err.Error())
+		return nil, fmt.Errorf("Can't init table 'Predictions': %s", err.Error())
+	}
+	if err := models.InitStagesTable(db); err != nil {
+		return nil, fmt.Errorf("Can't init table 'Stages': %s", err.Error())
 	}
 	log.Printf("Database Initialized")
 

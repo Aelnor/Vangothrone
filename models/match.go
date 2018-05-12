@@ -19,6 +19,7 @@ const (
 	CREATE_MATCHES_TABLE = "CREATE TABLE IF NOT EXISTS Matches(team_a, team_b, date, result)"
 	SELECT_ALL_MATCHES   = "SELECT rowid, team_a, team_b, date, result FROM Matches ORDER BY date ASC"
 	SELECT_MATCH_BY_ID   = "SELECT rowid, team_a, team_b, date, result FROM Matches WHERE rowid=?"
+	SELECT_STAGE_MATCHES = "SELECT rowid, team_a, team_b, date, result FROM Matches WHERE date >= ? AND date <= ?"
 )
 
 func InitMatchesTable(db *sql.DB) error {
@@ -91,8 +92,8 @@ func SaveMatch(db *sql.DB, m *Match) error {
 	return nil
 }
 
-func LoadMatches(db *sql.DB) ([]*Match, error) {
-	rows, err := db.Query(SELECT_ALL_MATCHES)
+func LoadMatchesByStage(db *sql.DB, s *Stage) ([]*Match, error) {
+	rows, err := db.Query(SELECT_STAGE_MATCHES, s.StartDate.Format(TIMEFORMAT), s.EndDate.Format(TIMEFORMAT))
 	if err != nil {
 		return nil, err
 	}
