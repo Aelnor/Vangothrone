@@ -16,7 +16,7 @@ type Stage struct {
 const (
 	CREATE_STAGES_TABLE  = "CREATE TABLE IF NOT EXISTS Stages(name, start_date, end_date)"
 	SELECT_ALL_STAGES    = "SELECT rowid, name, start_date, end_date FROM Stages"
-	SELECT_CURRENT_STAGE = SELECT_ALL_STAGES + " WHERE date('now') >= start_date AND date('now') <= end_date"
+	SELECT_CURRENT_STAGE = SELECT_ALL_STAGES + " WHERE date('now') >= date(start_date) AND date('now') <= date(end_date)"
 )
 
 func InitStagesTable(db *sql.DB) error {
